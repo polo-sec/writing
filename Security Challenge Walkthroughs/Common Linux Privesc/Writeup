@@ -1,0 +1,111 @@
+Hello! Welcome to the Common Linux Privesc Walkthrough!
+
+What does "privilege escalation" mean?
+
+Privilege escalation is the exploitation of a vulnerability, design flaw or configuration oversight in an operating system 
+or application to gain unauthorized access to resources that are usually restricted from the users.
+
+Why is it important?
+
+Rarely when doing a CTF or real-world penetration test, will you be able to gain a foothold (initial access) that affords you 
+administrator access. Privilege escalation is crucial, because it lets you gain system administrator levels of access. This 
+allow you to do many things, including:
+
+     Reset passwords
+     Bypass access controls to compromise protected data
+     Edit software configurations
+     Enable persistence, so you can access the machine again later.
+     Change privilege of users
+     Get that cheeky root flag ;) 
+
+As well as any other administrator or super user commands that you desire. 
+
+There are two main privilege escalation variants:
+
+Horizontal privilege escalation: This is where you expand your reach over the compromised system by taking over a different 
+user who is on the same privilege level as you. For instance, a normal user hijacking another normal user 
+(rather than elevating to super user). This allows you to inherit whatever files and access that user has.
+This can be used, for example, to gain access to another normal privilege user, that happens to have an SUID file attached 
+to their home directory (more on these later) which can then be used to get super user access. [Travel sideways on the tree]
+
+Vertical privilege escalation (privilege elevation): This is where you attempt to gain higher privileges or access, with an 
+existing account that you have already compromised. For local privilege escalation attacks this might mean hijacking an account
+with administrator privileges or root privileges. [Travel up on the tree]
+
+ENUMERATION
+
+What is LinEnum?
+
+LinEnum is a simple bash script that performs common commands related to privilege escalation, saving time and allowing more 
+effort to be put toward getting root. It is important to understand what commands LinEnum executes, so that you are able to 
+manually enumerate privesc vulnerabilities in a situation where you're unable to use LinEnum or other like scripts. 
+In this room, we will explain what LinEnum is showing, and what commands can be used to replicate it.
+
+
+Where to get LinEnum
+
+You can download a local copy of LinEnum from:
+
+https://github.com/rebootuser/LinEnum/blob/master/LinEnum.sh
+
+It's worth keeping this somewhere you'll remember, because LinEnum is an invaluable tool.
+
+
+How do I get LinEnum on the target machine?
+
+First, lets SSH into the target machine, using the credentials user3:password. This is to simulate getting a foothold on the 
+system as a normal privilege user.
+
+There are two ways to get LinEnum on the target machine. The first way, is to go to the directory that you have your local
+copy of LinEnum stored in, and start a Python web server using "python -m SimpleHTTPServer 8000". Then using wget on the
+target machine, and your local IP, you can grab the file from your local machine.
+
+In case you're unable to transport the file, you can also, if you have sufficient permissions, copy the raw LinEnum code from
+your local machine and paste it into a new file on the target. Once you've done this, you can save the file with the ".sh" 
+extension, and make the file executable using the command "chmod +x FILENAME.sh". You now have now made your own executable 
+copy of the LinEnum script on the target machine!
+
+Running LinEnum
+
+LinEnum can be run the same way you run any bash script, go to the directory where LinEnum is and run the command 
+"./LinEnum.sh".
+
+Understanding LinEnum Output
+
+The LinEnum output is broken down into different sections, these are the main sections that we will focus on:
+
+Kernel Kernel information is shown here. There is most likely a kernel exploit available for this machine.
+
+Can we read/write sensitive files: The output for SUID files is shown here. There are a few interesting items that 
+we will definitely look into as a way to escalate privileges.
+
+Can we read/write sensitive files: The world-writable files are shown below. These are the files that any authenticated user 
+can read and write to. We can also see that gcc, wget, and netcat are installed. These will be needed for any kernel exploits 
+as well as being useful in transferring files to the machine.
+
+Crontab Contents: The scheduled cron jobs are shown below. There is certainly enough information to warrant attempting to
+exploit cronjobs here.
+
+There's also a lot of other useful information contained in this scan. Lets have a read!
+
+
+FINDING AND EXPLOITING SUID FILES
+
+The first step in Linux privilege escalation exploitation is to check for files with the SUID/GUID bit set. 
+This means that the file or files can be run with the permissions of the file(s) owner/group. In this case, as the super-user. 
+We can leverage this to get a shell with these privileges!
+
+We already know that there is SUID capable files on the system, thanks to our LinEnum scan. However, if we want to do this 
+manually we can use the command: "find / -perm -u=s -type f 2>/dev/null" to search the file system for SUID/GUID files.
+
+We know that "shell" is an SUID bit file, therefore it runs as root. Lets chain another command onto the execution of it- 
+to open up a new bash prompt with these permissions.
+
+We can do this by running: "./shell -exec /bin/bash \;"
+
+
+EXPLOITIN A WRITEABLE /ETC/PASSWD
+
+Continuing with the enumeration of users, we found that user7 is a member of the root group with gid 0. And we already know 
+from the LinEnum scan that /etc/passwd file is writable for the user. So from this observation, we concluded that user7 
+can edit the /etc/passwd file. 
