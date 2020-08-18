@@ -62,7 +62,7 @@ Gives us an executable binary called "rename" that we can use to switch two file
 
 So, lets create a file owned by us that we can swap with, for this example I used "touch" to create a file called "swap". 
 
-  ./rename root_password_backup test & 
+  ./rename root_password_backup swap & 
 
 To run the file path swapper in the background, and then used:
 
