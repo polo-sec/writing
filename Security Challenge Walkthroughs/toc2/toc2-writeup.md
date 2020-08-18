@@ -1,9 +1,9 @@
 
-*toc2
+# toc2
 
 Welcome 
 
-**Enumeration:
+## Enumeration:
 
 Port Scan:
   SSH on Port 20
@@ -12,7 +12,7 @@ Port Scan:
 Going to the web server we see a an "Under Construction!" notice, with a short message from an angry Sysadmin and some credentials. Enumerating further, by checking the 
 robots.txt we see a directory that's been blocked from crawling, along with another note about finishing the CMS setup. 
 
-** Foothold: **
+## Foothold: 
 
 Visiting that directory, brings us to the CMS Made Simple "Installation and upgrade assistant" page. This would normally be used to set up a working cmsms installation,
 however- by checking the version number (2.1.5) and looking it up, we find that there is a CVE (CVE-2018-7448) associated with it. This CVE allows Arbitrary PHP code to be 
@@ -30,12 +30,12 @@ We then finish the installation. In order to get code execution, following the e
 
 Where we can use the "cmd=" paramater to run commands, in this case "id". 
 
-** User: **
+## User: 
 
 Leveraging this, we can explore the system. Checking the /home directory, we find one user- Frank. That's our disgruntled admin from before. He's left a note in his home 
 directory that gives us a clue as to what his password could be. Trying his login through SSH gives us access to his account, and access to the user flag.
 
-** Privesc: **
+## Privesc:
 
 In the folder "root_access", there will be an SUID binary called "read_creds", the source code for that binary, and a file called "root_password_backup". This file is owned 
 by root, and cannot be read by anyone except the owner. Fortunately, there's an SUID binary that reads files just sitting there, right? 
