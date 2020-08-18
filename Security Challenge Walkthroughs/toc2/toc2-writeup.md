@@ -15,7 +15,7 @@ robots.txt we see a directory that's been blocked from crawling, along with anot
 ## Foothold: 
 
 Visiting that directory, brings us to the CMS Made Simple "Installation and upgrade assistant" page. This would normally be used to set up a working cmsms installation,
-however- by checking the version number (2.1.5) and looking it up, we find that there is a CVE (CVE-2018-7448) associated with it. This CVE allows Arbitrary PHP code to be 
+however- by checking the version number (2.1.6) and looking it up, we find that there is a CVE (CVE-2018-7448) associated with it. This CVE allows Arbitrary PHP code to be 
 injected into configuration file, using the "timezone" parameter during setup. 
 
 In order to exploit this, we follow the installation as normal, using the credentials from the "Under Construction!" page, and the database name from the robots.txt message- 
