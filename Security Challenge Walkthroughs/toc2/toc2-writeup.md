@@ -1,9 +1,9 @@
 
-* toc2 *
+*toc2
 
 Welcome 
 
-** Enumeration: **
+**Enumeration:
 
 Port Scan:
   SSH on Port 20
