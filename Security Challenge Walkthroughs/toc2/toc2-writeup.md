@@ -6,7 +6,7 @@ Welcome
 ## Enumeration:
 
 Port Scan:
-  SSH on Port 20
+  SSH on Port 22
   Apache on Port 80
 
 Going to the web server we see a an "Under Construction!" notice, with a short message from an angry Sysadmin and some credentials. Enumerating further, by checking the 
