@@ -45,8 +45,9 @@ break the binary down into each process:
 
 1. The binary first calls "stat" to get the file information, using the file path. 
 2. It then checks the uid using the information from stat, if the file's uid is 0 (root) it prints an error message and exits
-3. If not, it uses open on the file path passed to the binary and assigns that to a variable
-4. If the variable is not empty, it cats the variable to output it. 
+3. It then sleeps for one
+4. If not, it uses open on the file path passed to the binary and assigns that to a variable
+5. If the variable is not empty, it cats the variable to output it. 
 
 There's a cheeky race condition lurking here. The binary calls the file path twice, once to check the status- and once to actually open the file. Therefore, if we can switch 
 the file fast enough, we can change the file path, so that the first time it gets called- it's a file belonging to the user, which we can read. And then- the second time it 
